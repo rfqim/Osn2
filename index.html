@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kuis Matematika</title>
+    <title>OLMATH 1.2</title>
     <!-- MathJax untuk render rumus matematika LaTeX -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -43,7 +43,7 @@
 <div class="container">
     <!-- Halaman Awal -->
     <div id="start-screen">
-        <h2>Kuis Matematika</h2>
+        <h2>OLMATH 1.2</h2>
         <div class="form-group">
             <label for="nama"><strong>Nama Lengkap:</strong></label>
             <input type="text" id="nama" required placeholder="Masukkan nama Anda">
@@ -73,7 +73,7 @@
     <div id="loading" style="text-align: center; color: #d97706; font-weight: bold;">Merekap nilai dan mengirim jawaban... Mohon tunggu.</div>
     <div id="result">
         <h3 id="score-display"></h3>
-        <p>Terima kasih telah mengerjakan kuis ini. Nilai Anda sudah tersimpan.</p>
+                <p>Good Game!.</p>
     </div>
 </div>
 
@@ -105,7 +105,7 @@
     function startQuiz() {
         const namaInput = document.getElementById('nama').value.trim();
         if(namaInput === "") {
-            alert("Silakan masukkan nama Anda terlebih dahulu.");
+            alert("Nama Lengkap yaa, bukan nickname.");
             return;
         }
 
@@ -123,7 +123,7 @@
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 timerDisplay.innerText = "WAKTU HABIS";
-                alert("Waktu habis! Jawaban Anda akan otomatis dikirim.");
+                alert("TIMES UP KID!.");
                 submitQuiz();
             } else {
                 timeLeft--;
