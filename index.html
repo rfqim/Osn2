@@ -13,31 +13,64 @@
         h2 { text-align: center; color: #1e3a8a; }
         .form-group { margin-bottom: 20px; }
         input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .question { margin-top: 30px; font-weight: bold; }
+        
+        /* Tampilan Kuis */
+        #quiz-screen, #result, #loading { display: none; }
+        .header-quiz { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; }
+        #timer { font-size: 1.2em; font-weight: bold; color: #dc2626; }
+        .question-number { font-weight: bold; color: #6b7280; margin-bottom: 10px; }
+        .question-text { font-size: 1.1em; margin-bottom: 20px; }
         .options { margin-top: 10px; }
-        .option { margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px;}
-        button { display: block; width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 30px; }
-        button:hover { background: #1d4ed8; }
-        #loading { display: none; text-align: center; color: #d97706; font-weight: bold; margin-top: 15px; }
-        #result { display: none; text-align: center; margin-top: 20px; padding: 20px; background: #dcfce7; color: #166534; border-radius: 5px; }
+        .option { margin-bottom: 15px; display: flex; align-items: baseline; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid #e5e7eb; border-radius: 5px; transition: 0.2s;}
+        .option:hover { background-color: #f9fafb; }
+        
+        /* Tombol Navigasi */
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 30px; }
+        button { padding: 12px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #2563eb; color: white; width: 100%; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-nav { background: #4b5563; color: white; width: 48%; }
+        .btn-nav:hover { background: #374151; }
+        .btn-nav:disabled { background: #d1d5db; cursor: not-allowed; }
+        .btn-submit { background: #16a34a; color: white; width: 48%; }
+        .btn-submit:hover { background: #15803d; }
+        
+        #result { text-align: center; padding: 20px; background: #dcfce7; color: #166534; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Kuis Matematika</h2>
-    <form id="quizForm">
+    <!-- Halaman Awal -->
+    <div id="start-screen">
+        <h2>Kuis Matematika</h2>
         <div class="form-group">
             <label for="nama"><strong>Nama Lengkap:</strong></label>
-            <input type="text" id="nama" name="Nama" required placeholder="Masukkan nama Anda">
+            <input type="text" id="nama" required placeholder="Masukkan nama Anda">
+        </div>
+        <button type="button" class="btn-primary" onclick="startQuiz()">Mulai Kuis</button>
+    </div>
+
+    <!-- Halaman Kuis -->
+    <div id="quiz-screen">
+        <div class="header-quiz">
+            <div id="student-name"><strong>Nama: </strong><span></span></div>
+            <div id="timer">30:00</div>
+        </div>
+        
+        <div id="quiz-content">
+            <!-- Konten soal akan dimuat di sini oleh JavaScript -->
         </div>
 
-        <div id="quiz-content"></div>
+        <div class="nav-buttons">
+            <button type="button" class="btn-nav" id="prevBtn" onclick="changeQuestion(-1)">Sebelumnya</button>
+            <button type="button" class="btn-nav" id="nextBtn" onclick="changeQuestion(1)">Selanjutnya</button>
+            <button type="button" class="btn-submit" id="submitBtn" onclick="submitQuiz()" style="display: none;">Kirim Jawaban</button>
+        </div>
+    </div>
 
-        <button type="submit" id="submitBtn">Kirim Jawaban</button>
-        <div id="loading">Mengirim jawaban... Mohon tunggu.</div>
-    </form>
-
+    <!-- Loading & Hasil -->
+    <div id="loading" style="text-align: center; color: #d97706; font-weight: bold;">Merekap nilai dan mengirim jawaban... Mohon tunggu.</div>
     <div id="result">
         <h3 id="score-display"></h3>
         <p>Terima kasih telah mengerjakan kuis ini. Nilai Anda sudah tersimpan.</p>
@@ -45,119 +78,145 @@
 </div>
 
 <script>
-    // URL dari Google Apps Script (Langkah 2)
+    // MASUKKAN URL WEB APP GOOGLE SCRIPT DI SINI
     const scriptURL = 'https://script.google.com/macros/s/AKfycby8cLnkM4VCthq0Dj8PsgHn69VUZwVgksNRAGrg8vGEBT7IaJAk0853Lvz9aXhGghua3Q/exec'; 
+    
+    // Waktu Kuis (dalam detik) -> 30 menit = 1800 detik
+    let timeLeft = 1800; 
 
-    // Data Soal (Rumus LaTeX dibungkus dengan \( \) untuk MathJax)
+    // Data Soal
     const questions = [
-        {
-            q: "Jika untuk setiap \\(a, b\\) bilangan real berlaku \\(a \\otimes b = ab + a - b\\), maka \\((a+b) \\otimes (a-b)\\) sama dengan ....",
-            options: ["\\(a^2 - b^2 + 2b\\)", "\\(a^2 - b^2 + 2a\\)", "\\(a^2 - b^2 - 2a\\)", "\\(a^2 - b^2 - 2b\\)", "\\(a^2 + b^2 + 2b\\)"],
-            answer: 0 // Index A = 0
-        },
-        {
-            q: "Jika \\(k > 4\\), maka di antara pilihan berikut yang nilainya paling kecil adalah ....",
-            options: ["\\(\\frac{k}{4}\\)", "\\(\\frac{4}{k+2}\\)", "\\(\\frac{4}{k}\\)", "\\(\\frac{4}{k-1}\\)", "\\(\\frac{k+1}{4}\\)"],
-            answer: 1 // Index B = 1
-        },
-        {
-            q: "Diketahui \\(p(r - 3) = 0\\), \\(q(r - 7) = 0\\), dan \\(3 < 7\\). Pernyataan berikut yang pasti benar adalah ....",
-            options: ["\\(pq > 0\\)", "\\(pq < 0\\)", "\\(p + q = 0\\)", "\\(p = q\\)", "\\(pq = 0\\)"],
-            answer: 4 // Index E = 4
-        },
-        {
-            q: "\\(a, b, c\\) adalah bilangan positif yang memenuhi \\(ab = \\frac{c}{3}\\). Jika \\(a\\) bertambah 20% dan \\(b\\) berkurang 10%, berapakah perubahan \\(c\\) agar hubungan \\(ab = \\frac{c}{3}\\) tetap terpenuhi?",
-            options: ["\\(c\\) bertambah 8%", "\\(c\\) berkurang 8%", "\\(c\\) bertambah 10%", "\\(c\\) berkurang 10%", "\\(c\\) bertambah 12%"],
-            answer: 0 // Index A = 0
-        },
-        {
-            q: "Banyaknya pasangan bilangan bulat positif \\((x, y)\\) dengan \\(x < y\\) yang memenuhi persamaan \\(\\sqrt{x} + \\sqrt{y} = \\sqrt{1080}\\) adalah ....",
-            options: ["0", "1", "2", "3", "4"],
-            answer: 2 // Index C = 2
-        },
-        {
-            q: "Panjang suatu persegi panjang adalah 3 cm lebih panjang dari lebarnya. Jika lebarnya bertambah 3 cm dan panjangnya bertambah 2 cm, maka luasnya menjadi dua kali luas semula. Luas persegi panjang semula adalah ....",
-            options: ["18 cm\\(^2\\)", "28 cm\\(^2\\)", "40 cm\\(^2\\)", "48 cm\\(^2\\)", "60 cm\\(^2\\)"],
-            answer: 2 // Index C = 2
-        },
-        {
-            q: "Sebuah wadah berisi 200 kelereng dan 90% di antaranya berwarna biru. Dari wadah tersebut diambil sejumlah kelereng biru sehingga persentase kelereng biru di dalam wadah menjadi 60%. Berapa banyak kelereng biru yang diambil?",
-            options: ["100", "120", "140", "150", "160"],
-            answer: 3 // Index D = 3
-        },
-        {
-            q: "Budi berjalan ke perpustakaan, rata-rata ia melangkah 80 kali per menit dengan panjang tiap langkah 70 cm. Ia membutuhkan waktu 15 menit. Andi berjalan ke perpustakaan yang sama melalui rute yang sama dengan 100 langkah per menit, tetapi panjang langkahnya hanya 60 cm. Berapa lama waktu yang dibutuhkan Andi?",
-            options: ["10 menit", "12 menit", "14 menit", "16 menit", "18 menit"],
-            answer: 2 // Index C = 2
-        },
-        {
-            q: "Diketahui kerucut terbalik yang dibagi menjadi 3 bagian (A di atas, B di tengah, dan C di bawah) oleh bidang sejajar alas. Kerucut C (puncak bawah) memiliki jari-jari \\(r\\) dan tinggi \\(t\\). Gabungan (B+C) membentuk kerucut sebanding dengan jari-jari \\(2r\\) dan tinggi \\(2t\\). Gabungan (A+B+C) membentuk kerucut sebanding dengan jari-jari \\(3r\\) dan tinggi \\(3t\\). Berapakah perbandingan Volume A : Volume C?",
-            options: ["19 : 1", "19 : 7", "7 : 1", "9 : 1", "27 : 1"],
-            answer: 0 // Index A = 0
-        },
-        {
-            q: "Sebuah toko menetapkan harga suatu barang dalam dolar dan sen sedemikian hingga jika ditambahkan pajak penjualan 5%, tidak perlu diadakan pembulatan sebab hasilnya tepat \\(n\\) dolar. Nilai terkecil untuk \\(n\\) adalah ....",
-            options: ["1", "20", "21", "25", "105"],
-            answer: 2 // Index C = 2
-        }
+        { q: "Jika untuk setiap \\(a, b\\) bilangan real berlaku \\(a \\otimes b = ab + a - b\\), maka \\((a+b) \\otimes (a-b)\\) sama dengan ....", options: ["\\(a^2 - b^2 + 2b\\)", "\\(a^2 - b^2 + 2a\\)", "\\(a^2 - b^2 - 2a\\)", "\\(a^2 - b^2 - 2b\\)", "\\(a^2 + b^2 + 2b\\)"], answer: 0 },
+        { q: "Jika \\(k > 4\\), maka di antara pilihan berikut yang nilainya paling kecil adalah ....", options: ["\\(\\frac{k}{4}\\)", "\\(\\frac{4}{k+2}\\)", "\\(\\frac{4}{k}\\)", "\\(\\frac{4}{k-1}\\)", "\\(\\frac{k+1}{4}\\)"], answer: 1 },
+        { q: "Diketahui \\(p(r - 3) = 0\\), \\(q(r - 7) = 0\\), dan \\(3 < 7\\). Pernyataan berikut yang pasti benar adalah ....", options: ["\\(pq > 0\\)", "\\(pq < 0\\)", "\\(p + q = 0\\)", "\\(p = q\\)", "\\(pq = 0\\)"], answer: 4 },
+        { q: "\\(a, b, c\\) adalah bilangan positif yang memenuhi \\(ab = \\frac{c}{3}\\). Jika \\(a\\) bertambah 20% dan \\(b\\) berkurang 10%, berapakah perubahan \\(c\\) agar hubungan \\(ab = \\frac{c}{3}\\) tetap terpenuhi?", options: ["\\(c\\) bertambah 8%", "\\(c\\) berkurang 8%", "\\(c\\) bertambah 10%", "\\(c\\) berkurang 10%", "\\(c\\) bertambah 12%"], answer: 0 },
+        { q: "Banyaknya pasangan bilangan bulat positif \\((x, y)\\) dengan \\(x < y\\) yang memenuhi persamaan \\(\\sqrt{x} + \\sqrt{y} = \\sqrt{1080}\\) adalah ....", options: ["0", "1", "2", "3", "4"], answer: 2 },
+        { q: "Panjang suatu persegi panjang adalah 3 cm lebih panjang dari lebarnya. Jika lebarnya bertambah 3 cm dan panjangnya bertambah 2 cm, maka luasnya menjadi dua kali luas semula. Luas persegi panjang semula adalah ....", options: ["18 cm\\(^2\\)", "28 cm\\(^2\\)", "40 cm\\(^2\\)", "48 cm\\(^2\\)", "60 cm\\(^2\\)"], answer: 2 },
+        { q: "Sebuah wadah berisi 200 kelereng dan 90% di antaranya berwarna biru. Dari wadah tersebut diambil sejumlah kelereng biru sehingga persentase kelereng biru di dalam wadah menjadi 60%. Berapa banyak kelereng biru yang diambil?", options: ["100", "120", "140", "150", "160"], answer: 3 },
+        { q: "Budi berjalan ke perpustakaan, rata-rata ia melangkah 80 kali per menit dengan panjang tiap langkah 70 cm. Ia membutuhkan waktu 15 menit. Andi berjalan ke perpustakaan yang sama melalui rute yang sama dengan 100 langkah per menit, tetapi panjang langkahnya hanya 60 cm. Berapa lama waktu yang dibutuhkan Andi?", options: ["10 menit", "12 menit", "14 menit", "16 menit", "18 menit"], answer: 2 },
+        { q: "Diketahui kerucut terbalik yang dibagi menjadi 3 bagian (A di atas, B di tengah, dan C di bawah) oleh bidang sejajar alas. Kerucut C (puncak bawah) memiliki jari-jari \\(r\\) dan tinggi \\(t\\). Gabungan (B+C) membentuk kerucut sebanding dengan jari-jari \\(2r\\) dan tinggi \\(2t\\). Gabungan (A+B+C) membentuk kerucut sebanding dengan jari-jari \\(3r\\) dan tinggi \\(3t\\). Berapakah perbandingan Volume A : Volume C?", options: ["19 : 1", "19 : 7", "7 : 1", "9 : 1", "27 : 1"], answer: 0 },
+        { q: "Sebuah toko menetapkan harga suatu barang dalam dolar dan sen sedemikian hingga jika ditambahkan pajak penjualan 5%, tidak perlu diadakan pembulatan sebab hasilnya tepat \\(n\\) dolar. Nilai terkecil untuk \\(n\\) adalah ....", options: ["1", "20", "21", "25", "105"], answer: 2 }
     ];
 
-    const quizContent = document.getElementById('quiz-content');
-    const letters = ['A', 'B', 'C', 'D', 'E'];
+    let currentQuestion = 0;
+    let userAnswers = new Array(questions.length).fill(null);
+    let timerInterval;
 
-    // Render HTML untuk Soal
-    questions.forEach((item, index) => {
-        let html = `<div class="question">${index + 1}. ${item.q}</div><div class="options">`;
+    function startQuiz() {
+        const namaInput = document.getElementById('nama').value.trim();
+        if(namaInput === "") {
+            alert("Silakan masukkan nama Anda terlebih dahulu.");
+            return;
+        }
+
+        document.getElementById('student-name').querySelector('span').innerText = namaInput;
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        
+        renderQuestion(currentQuestion);
+        startTimer();
+    }
+
+    function startTimer() {
+        const timerDisplay = document.getElementById('timer');
+        timerInterval = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.innerText = "WAKTU HABIS";
+                alert("Waktu habis! Jawaban Anda akan otomatis dikirim.");
+                submitQuiz();
+            } else {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                timerDisplay.innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+            }
+        }, 1000);
+    }
+
+    function renderQuestion(index) {
+        const item = questions[index];
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        
+        let html = `<div class="question-number">Soal ${index + 1} dari ${questions.length}</div>`;
+        html += `<div class="question-text">${item.q}</div><div class="options">`;
+        
         item.options.forEach((opt, i) => {
+            // Cek apakah opsi ini sebelumnya sudah dipilih
+            const isChecked = userAnswers[index] === i ? 'checked' : '';
             html += `
             <label class="option">
-                <input type="radio" name="q${index}" value="${i}" required> 
+                <input type="radio" name="q_current" value="${i}" onchange="saveAnswer(${index}, ${i})" ${isChecked}> 
                 ${letters[i]}. ${opt}
             </label>`;
         });
         html += `</div>`;
-        quizContent.innerHTML += html;
-    });
-
-    // Proses Submit Jawaban
-    document.getElementById('quizForm').addEventListener('submit', function(e) {
-        e.preventDefault();
         
-        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('quiz-content').innerHTML = html;
+
+        // Render ulang MathJax agar simbol LaTeX terbaca di soal yang baru dimuat
+        if (window.MathJax) {
+            MathJax.typesetPromise([document.getElementById('quiz-content')]);
+        }
+
+        // Atur tombol navigasi
+        document.getElementById('prevBtn').disabled = index === 0;
+        
+        if (index === questions.length - 1) {
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+        } else {
+            document.getElementById('nextBtn').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+    }
+
+    function saveAnswer(qIndex, optIndex) {
+        userAnswers[qIndex] = optIndex;
+    }
+
+    function changeQuestion(step) {
+        currentQuestion += step;
+        renderQuestion(currentQuestion);
+    }
+
+    function submitQuiz() {
+        clearInterval(timerInterval); // Hentikan waktu
+        document.getElementById('quiz-screen').style.display = 'none';
         document.getElementById('loading').style.display = 'block';
 
         let score = 0;
         let details = [];
+        const letters = ['A', 'B', 'C', 'D', 'E'];
 
-        // Hitung skor dan catat jawaban
         questions.forEach((item, index) => {
-            let selected = parseInt(document.querySelector(`input[name="q${index}"]:checked`).value);
+            let selected = userAnswers[index];
             if(selected === item.answer) {
-                score += 10; // Setiap soal benar nilainya 10 (Total 100)
+                score += 10;
                 details.push(`Q${index+1}: Benar`);
             } else {
-                details.push(`Q${index+1}: Salah (Jawab: ${letters[selected]})`);
+                let ansText = selected !== null ? letters[selected] : "Kosong";
+                details.push(`Q${index+1}: Salah (Jawab: ${ansText})`);
             }
         });
 
         const formData = new FormData();
-        formData.append('Nama', document.getElementById('nama').value);
+        formData.append('Nama', document.getElementById('student-name').querySelector('span').innerText);
         formData.append('Skor', score);
         formData.append('Detail', details.join(', '));
 
-        // Kirim ke Google Sheets
         fetch(scriptURL, { method: 'POST', body: formData})
             .then(response => {
-                document.getElementById('quizForm').style.display = 'none';
+                document.getElementById('loading').style.display = 'none';
                 document.getElementById('result').style.display = 'block';
                 document.getElementById('score-display').innerText = `Skor Anda: ${score} / 100`;
             })
             .catch(error => {
-                alert('Terjadi kesalahan, silakan coba lagi.');
-                document.getElementById('submitBtn').style.display = 'block';
+                alert('Gagal mengirim ke server. Silakan pastikan internet aktif.');
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('quiz-screen').style.display = 'block';
             });
-    });
+    }
 </script>
 </body>
 </html>
